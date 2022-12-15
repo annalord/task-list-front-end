@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TaskList from './components/TaskList.js';
 import './App.css';
 
-const TASKS = [
+const TASKS_DATA = [
   {
     id: 1,
     title: 'Mow the lawn',
@@ -16,16 +16,40 @@ const TASKS = [
 ];
 
 const App = () => {
+
+  const [tasks, setTasks] = useState(TASKS_DATA);
+
+  const setComplete = (id) => {
+    setTasks(tasks => tasks.map(task => { 
+      if (id === task.id) { 
+        return {...task, isComplete: !task.isComplete};
+      } else {
+        return task;
+      }
+  }));
+  };
+
+  const deleteTask = (id) => {
+    setTasks(tasks => tasks.filter(task => task.id !== id));
+  };
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Ada&apos;s Task List</h1>
       </header>
       <main>
-        <div>{<TaskList tasks={TASKS} />}</div>
+        <div>
+          <TaskList 
+            tasks={tasks} 
+            onSetComplete={setComplete}
+            onDeleteTask={deleteTask}
+          />
+        </div>
       </main>
     </div>
   );
+  
 };
 
 export default App;
