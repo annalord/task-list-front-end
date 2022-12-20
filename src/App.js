@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+/* eslint-disable camelcase */
+import React, { useState, useEffect } from 'react';
 import TaskList from './components/TaskList.js';
 import './App.css';
+import NewTaskForm from './components/NewTaskForm.js';
 import axios from 'axios';
 
 const kBaseUrl = 'https://task-list-api-c17.herokuapp.com';
@@ -19,16 +21,10 @@ const getAllTasksApi = () => {
   .catch(err => console.log(err));
 };
 
-const markCompleteApi = (id) => {
-  return axios.patch(`${kBaseUrl}/tasks/${id}/mark_complete`)
-  .then (response => {
-    return convertFromApiFormat(response.data);
-  })
-  .catch (err => console.log(err));
-};
+const updateCompleteApi = (id, markComplete) => {
+  const endpoint = markComplete ? 'mark_complete' : 'mark_incomplete';
 
-const markIncompleteApi = (id) => {
-  return axios.patch(`${kBaseUrl}/tasks/${id}/mark_incomplete`)
+  return axios.patch(`${kBaseUrl}/tasks/${id}/${endpoint}`)
   .then (response => {
     return convertFromApiFormat(response.data);
   })
@@ -43,22 +39,60 @@ const deleteTaskApi = (id) => {
   .catch (err => console.log(err));
 };
 
+const addNewTaskApi = (title) => {
+  const currentTaskData = {
+    title, 
+    description: 'description of task', 
+    is_complete: false
+  };
+  return axios.post(`${kBaseUrl}/tasks`, currentTaskData)
+  .then(response => {
+    return convertFromApiFormat(response.data);
+  })
+  .catch(err => console.log(err));
+};
+
 const App = () => {
 
   const [tasks, setTasks] = useState([]);
 
-  const setComplete = (id) => {
-    setTasks(tasks => tasks.map(task => { 
-      if (id === task.id) { 
-        return {...task, isComplete: !task.isComplete};
-      } else {
-        return task;
-      }
-  }));
-  };
+  const updateComplete = (id) => {
+    const task = tasks.find(task => task.id === id);
+
+    return updateCompleteApi(id, !task.isComplete)
+    .then(taskResult => {
+      setTasks(tasks => tasks.map(task => { 
+        if (task.id === taskResult.id) { 
+          return taskResult;
+        } else {
+          return task;
+        }
+    })
+    );});
+    };
 
   const deleteTask = (id) => {
-    setTasks(tasks => tasks.filter(task => task.id !== id));
+    return deleteTaskApi(id)
+    .then((() => {setTasks(tasks => tasks.filter(task => task.id !== id));}));
+  };
+
+  const getAllTasks = () => {
+    return getAllTasksApi()
+    .then (tasks => {
+      setTasks(tasks);
+    });
+  };
+
+  useEffect(() => {
+    getAllTasks();
+  }, [tasks]);
+
+  const handleTaskSubmit = (data) => { 
+    addNewTaskApi(data)
+    .then(newTask => {
+      setTasks([...tasks, newTask])
+    })
+    .catch(err => console.log(err));
   };
 
   return (
@@ -70,14 +104,15 @@ const App = () => {
         <div>
           <TaskList 
             tasks={tasks} 
-            onSetComplete={setComplete}
+            onSetComplete={updateComplete}
             onDeleteTask={deleteTask}
           />
+          <NewTaskForm handleTaskSubmit={handleTaskSubmit}></NewTaskForm>
         </div>
       </main>
     </div>
   );
-  
+
 };
 
 export default App;
